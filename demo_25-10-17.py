@@ -21,7 +21,6 @@ from skfeature.function.information_theoretical_based import MIM
 from skfeature.function.information_theoretical_based import MIFS
 from skfeature.function.information_theoretical_based import JMI
 from skfeature.function.information_theoretical_based import CIFE
-from skfeature.function.information_theoretical_based import FCBF
 from skfeature.function.information_theoretical_based import LCSI
 from skfeature.function.similarity_based import fisher_score
 from skfeature.function.similarity_based import reliefF
@@ -74,6 +73,7 @@ for data ,outfile in zip(datasets,xlsxfile):
     n_classes = a.size
     writer = pd.ExcelWriter(outfile, engine='xlsxwriter')
     colors = cycle(color[0:n_classes])
+
     
     for model, label,sheet in zip([ model1,model2], [ 'SVM','Random_Forest'],['sheet1','sheet2']):
         
@@ -91,6 +91,7 @@ for data ,outfile in zip(datasets,xlsxfile):
         table=pd.DataFrame()
         kfold = model_selection.KFold(n_splits=10,random_state=15)
         results = model_selection.cross_val_score(model,X,Y,cv=kfold)
+        print(results)
         X_train, X_test, y_train, y_test = train_test_split(X,Y,train_size=0.5)    
         A=model.fit(X_train, y_train)
         prediction=A.predict(X_test)
@@ -113,9 +114,11 @@ for data ,outfile in zip(datasets,xlsxfile):
         
         classifier1 = OneVsRestClassifier(model)
 
-        for i in range(20,100,20):
+        reliefF_acc_list=[]
+        features_list=[20,40,60,80,100]
+        for i in features_list:
             
-            #information_theoretical_based
+              #information_theoretical_based
 ##            print("CMIM feature selection algorithm ")
 ##            CMIM_sf,a,b=CMIM.cmim(X,Y,n_selected_features=i)
 ##            Xtemp=X[:,CMIM_sf[0:(i+1)]]
@@ -689,6 +692,7 @@ for data ,outfile in zip(datasets,xlsxfile):
             prediction=B.predict(X_test)
             precision, recall, fscore, support = score(y_test, prediction,average='micro')
             accuracy_list.append(float(results.mean()))
+            reliefF_acc_list.append(1-float(results.mean()))
             precision_list.append(float( precision))
             recall_list.append(float(recall))
             f1_list.append(float(fscore))
@@ -1204,6 +1208,23 @@ for data ,outfile in zip(datasets,xlsxfile):
         plt.boxplot(np.array(recall_list))
         plt.savefig('Boxplot_recall_'+str(label)+'_'+str(data)[:-4])
         plt.gcf().clear()
+
+        plt.errorbar(features_list,reliefF_acc_list, 
+             xerr=0.005,
+             yerr=0.005,
+             label='reliefF',
+             fmt='-',
+             color='g',
+             ecolor='xkcd:salmon', elinewidth=1.5,
+             capsize=5,
+             #capthick=2
+             )
+        plt.xlabel("features")
+        plt.ylabel("error")
+        plt.title("errorbar")
+        plt.legend(loc="lower right")
+        plt.grid()
+        plt.savefig(label+str(data)[:-4])
         print(table)
         df.to_excel(writer, sheet_name=sheet)
     writer.save()
